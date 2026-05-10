@@ -1,0 +1,122 @@
+.auth-page {
+  min-height: 100vh;
+  padding-top: 88px;
+  padding-bottom: 40px;
+  background: var(--bg-page);
+  display: flex;
+  align-items: center;
+}
+
+.auth-container {
+  max-width: 440px;
+}
+
+.auth-card {
+  background: var(--gl-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--gl-radius-lg);
+  padding: 32px 28px;
+}
+
+[data-theme='dark'] .auth-card {
+  background: var(--bg-elevated);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.auth-logo {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.auth-title {
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-heading);
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Reuse from ProfilePage.css */
+.form-label-custom {
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em !important;
+  color: var(--text-muted) !important;
+}
+
+.input-wrapper-dark {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon-dark {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.auth-input-dark {
+  background: var(--bg-page) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--gl-radius-md) !important;
+  color: var(--text-body) !important;
+  font-size: 0.95rem !important;
+  width: 100%;
+}
+
+.auth-input-dark.padded {
+  padding: 11px 12px 11px 2.75rem !important;
+}
+
+.auth-input-dark:focus {
+  border-color: var(--gl-tertiary) !important;
+  box-shadow: 0 0 0 3px rgba(44, 94, 245, 0.12) !important;
+}
+
+.btn-auth-submit {
+  width: 100%;
+  background: var(--gl-tertiary) !important;
+  border: none !important;
+  border-radius: var(--gl-radius-md) !important;
+  padding: 12px !important;
+  font-weight: 600 !important;
+  color: var(--gl-on-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btn-auth-submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.auth-switch a {
+  color: var(--gl-tertiary);
+  font-weight: 500;
+  text-decoration: none;
+}
