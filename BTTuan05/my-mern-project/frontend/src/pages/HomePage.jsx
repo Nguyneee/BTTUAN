@@ -4,6 +4,7 @@ import HeroBanner from '../components/home/HeroBanner';
 import CategoryGrid from '../components/home/CategoryGrid';
 import FlashSale from '../components/home/FlashSale';
 import ProductSection from '../components/home/ProductSection';
+import PopularProductsSection from '../components/home/PopularProductsSection';
 
 export default function HomePage() {
   const [bestSellers, setBestSellers] = useState([]);
@@ -44,6 +45,9 @@ export default function HomePage() {
 
         {/* Flash Sale */}
         <FlashSale products={onSale} />
+
+        {/* Popular Products Section */}
+        <PopularProductsSection />
 
         {/* Best Sellers */}
         <ProductSection

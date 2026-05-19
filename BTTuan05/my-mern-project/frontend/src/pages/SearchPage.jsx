@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { SlidersHorizontal, Search, Grid2X2, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, Search, Grid2X2, List, ChevronLeft, ChevronRight, Infinity } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/search/FilterSidebar';
 import SortDropdown from '../components/search/SortDropdown';
 import ActiveFilters from '../components/search/ActiveFilters';
+import InfiniteScroll from '../components/search/InfiniteScroll';
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1, page: 1 });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
+  const [displayMode, setDisplayMode] = useState('pagination'); // 'pagination' | 'infinite'
 
   const q = searchParams.get('q') || '';
   const category = searchParams.get('category') || '';
@@ -27,24 +30,27 @@ export default function SearchPage() {
   const sort = searchParams.get('sort') || 'newest';
   const page = parseInt(searchParams.get('page') || '1', 10);
 
+  const buildParams = (pageNum) => {
+    const params = new URLSearchParams();
+    if (q) params.set('search', q);
+    if (category) params.set('category', category);
+    if (minPrice) params.set('minPrice', minPrice);
+    if (maxPrice) params.set('maxPrice', maxPrice);
+    if (inStock) params.set('inStock', inStock);
+    if (onSale) params.set('onSale', onSale);
+    if (isNew) params.set('isNew', isNew);
+    if (tags) params.set('tags', tags);
+    params.set('sort', sort);
+    params.set('page', pageNum);
+    params.set('limit', 12);
+    return params;
+  };
+
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (q) params.set('search', q);
-        if (category) params.set('category', category);
-        if (minPrice) params.set('minPrice', minPrice);
-        if (maxPrice) params.set('maxPrice', maxPrice);
-        if (inStock) params.set('inStock', inStock);
-        if (onSale) params.set('onSale', onSale);
-        if (isNew) params.set('isNew', isNew);
-        if (tags) params.set('tags', tags);
-        params.set('sort', sort);
-        params.set('page', page);
-        params.set('limit', 12);
-
-        const res = await axiosClient.get(`/products?${params.toString()}`);
+        const res = await axiosClient.get(`/products?${buildParams(1).toString()}`);
         setProducts(res.data || []);
         setPagination(res.meta?.pagination || { total: 0, totalPages: 1, page: 1 });
       } catch (err) {
@@ -56,7 +62,26 @@ export default function SearchPage() {
     };
     fetchProducts();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [q, category, categorySlug, minPrice, maxPrice, inStock, onSale, isNew, tags, sort, page]);
+  }, [q, category, categorySlug, minPrice, maxPrice, inStock, onSale, isNew, tags, sort]);
+
+  const loadMore = async () => {
+    if (loadingMore || page >= pagination.totalPages) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const res = await axiosClient.get(`/products?${buildParams(nextPage).toString()}`);
+      setProducts((prev) => [...prev, ...(res.data || [])]);
+      setPagination(res.meta?.pagination || { total: 0, totalPages: 1, page: nextPage });
+      // Update URL without triggering full re-fetch
+      const next = new URLSearchParams(searchParams);
+      next.set('page', nextPage);
+      setSearchParams(next, { replace: true });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const updateParam = (key, value) => {
     const next = new URLSearchParams(searchParams);
@@ -127,6 +152,7 @@ export default function SearchPage() {
 
               <div className="flex items-center gap-2">
                 <SortDropdown value={sort} onChange={(v) => updateParam('sort', v)} />
+                {/* Display mode toggle */}
                 <div className="flex border border-gray-200 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setViewMode('grid')}
@@ -141,12 +167,29 @@ export default function SearchPage() {
                     <List className="w-4 h-4" />
                   </button>
                 </div>
+                {/* Infinite scroll / Pagination toggle */}
+                <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setDisplayMode('pagination')}
+                    title="Phân trang"
+                    className={`p-2 ${displayMode === 'pagination' ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'} transition-colors`}
+                  >
+                    <span className="w-4 h-4 text-xs font-bold">1 2 3</span>
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('infinite')}
+                    title="Cuộn vô hạn"
+                    className={`p-2 ${displayMode === 'infinite' ? 'bg-primary-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'} transition-colors`}
+                  >
+                    <Infinity className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Product grid / list */}
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(12)].map((_, i) => (
                   <div key={i} className="card animate-pulse">
                     <div className="aspect-square bg-gray-200" />
@@ -159,15 +202,29 @@ export default function SearchPage() {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <div className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4'
-                  : 'flex flex-col gap-4'
-              }>
-                {products.map((p) => (
-                  <ProductCard key={p._id} product={p} />
-                ))}
-              </div>
+              displayMode === 'infinite' ? (
+                <InfiniteScroll
+                  onLoadMore={loadMore}
+                  hasMore={page < pagination.totalPages}
+                  loading={loadingMore}
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {products.map((p) => (
+                      <ProductCard key={p._id} product={p} />
+                    ))}
+                  </div>
+                </InfiniteScroll>
+              ) : (
+                <div className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4'
+                    : 'flex flex-col gap-4'
+                }>
+                  {products.map((p) => (
+                    <ProductCard key={p._id} product={p} />
+                  ))}
+                </div>
+              )
             ) : (
               <div className="text-center py-20">
                 <Search className="w-16 h-16 text-gray-200 mx-auto mb-4" />
@@ -179,8 +236,8 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* Pagination */}
-            {!loading && pagination.totalPages > 1 && (
+            {/* Pagination — hidden in infinite scroll mode */}
+            {!loading && displayMode === 'pagination' && pagination.totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button
                   onClick={() => setPage(page - 1)}

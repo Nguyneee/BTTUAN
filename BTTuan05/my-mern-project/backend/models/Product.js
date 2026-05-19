@@ -80,6 +80,12 @@ const productSchema = new mongoose.Schema(
       of: String,
       default: {},
     },
+    // Total product views (for "most viewed" ranking)
+    viewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
@@ -88,5 +94,8 @@ const productSchema = new mongoose.Schema(
 
 // Text index for search
 productSchema.index({ name: "text", description: "text", tags: "text" });
+// Index for popular products sorting
+productSchema.index({ sold: -1 });
+productSchema.index({ viewCount: -1 });
 
 module.exports = mongoose.model("Product", productSchema);

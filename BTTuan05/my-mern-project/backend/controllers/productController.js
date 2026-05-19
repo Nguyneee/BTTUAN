@@ -93,6 +93,42 @@ const getAllProducts = async (req, res, next) => {
 };
 
 /**
+ * @desc   Get popular products (best sellers or most viewed)
+ * @route  GET /api/products/popular
+ * @access Public
+ * @query  type (sold|views), page, limit
+ */
+const getPopularProducts = async (req, res, next) => {
+  try {
+    const { type = "sold", page = 1, limit = 10 } = req.query;
+
+    if (!["sold", "views"].includes(type)) {
+      return next(new AppError("type phải là 'sold' hoặc 'views'", 400));
+    }
+
+    const sortField = type === "sold" ? "sold" : "viewCount";
+    const skip = (Number(page) - 1) * Number(limit);
+    const total = await Product.countDocuments();
+    const products = await Product.find()
+      .populate("category", "name slug icon")
+      .sort({ [sortField]: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    res.status(200).json(
+      ApiResponse.paginated(products, {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      })
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * @desc   Get a single product by ID + similar products
  * @route  GET /api/products/:id
  * @access Public
@@ -201,6 +237,7 @@ const deleteProduct = async (req, res, next) => {
 
 module.exports = {
   getAllProducts,
+  getPopularProducts,
   getProductById,
   createProduct,
   updateProduct,
