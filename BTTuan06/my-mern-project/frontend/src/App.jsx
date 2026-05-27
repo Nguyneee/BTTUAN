@@ -21,25 +21,34 @@ import OrderDetailPage from "./pages/OrderDetailPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 
+// Auth Pages
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+import ProfilePage from "./pages/auth/ProfilePage";
+
 /**
  * App — Root component.
  * Auth context wraps everything; Navbar shows on protected pages.
  *
  * Routes:
- *   /login       → LoginPage (public)
- *   /register    → RegisterPage (public)
- *   /            → HomePage (PrivateRoute - member)
- *   /products/:id → ProductDetailPage (PrivateRoute)
- *   /search      → SearchPage (PrivateRoute)
- *   /cart        → CartPage (PrivateRoute - member)
- *   /checkout    → CheckoutPage (PrivateRoute - member)
- *   /orders      → OrderHistoryPage (PrivateRoute - member)
- *   /orders/:id  → OrderDetailPage (PrivateRoute - member)
+ *   /login            → LoginPage (public)
+ *   /register         → RegisterPage (public)
+ *   /forgot-password  → ForgotPasswordPage (public)
+ *   /reset-password   → ResetPasswordPage (public)
+ *   /user/profile     → ProfilePage (PrivateRoute - member)
+ *   /                 → HomePage (PrivateRoute)
+ *   /products/:id     → ProductDetailPage (PrivateRoute)
+ *   /search           → SearchPage (PrivateRoute)
+ *   /cart             → CartPage (PrivateRoute - member)
+ *   /checkout         → CheckoutPage (PrivateRoute - member)
+ *   /orders           → OrderHistoryPage (PrivateRoute - member)
+ *   /orders/:id       → OrderDetailPage (PrivateRoute - member)
  *   /order-success/:id → OrderSuccessPage (PrivateRoute - member)
- *   /admin       → ProductList (PrivateRoute - admin only)
- *   /admin/add   → ProductForm (PrivateRoute - admin only)
- *   /admin/edit/:id → ProductForm (PrivateRoute - admin only)
- *   /admin/orders → AdminOrdersPage (PrivateRoute - admin only)
+ *   /admin/profile    → ProfilePage (PrivateRoute - admin only)
+ *   /admin            → ProductList (PrivateRoute - admin only)
+ *   /admin/add        → ProductForm (PrivateRoute - admin only)
+ *   /admin/edit/:id   → ProductForm (PrivateRoute - admin only)
+ *   /admin/orders     → AdminOrdersPage (PrivateRoute - admin only)
  */
 function AppRoutes() {
   return (
@@ -47,8 +56,20 @@ function AppRoutes() {
       {/* ── Public routes ─────────────────────────────────────────── */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* ── Protected routes (member) ─────────────────────────────── */}
+      <Route
+        path="/user/profile"
+        element={
+          <PrivateRoute>
+            <Navbar />
+            <ProfilePage />
+          </PrivateRoute>
+        }
+      />
+
       <Route
         path="/"
         element={
@@ -127,6 +148,15 @@ function AppRoutes() {
       />
 
       {/* ── Admin routes ──────────────────────────────────────── */}
+      <Route
+        path="/admin/profile"
+        element={
+          <PrivateRoute requiredRole="admin">
+            <Navbar />
+            <ProfilePage />
+          </PrivateRoute>
+        }
+      />
       <Route
         path="/admin"
         element={

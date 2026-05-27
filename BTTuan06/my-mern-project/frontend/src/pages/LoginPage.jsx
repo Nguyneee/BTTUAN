@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Zap, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAuthContext } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import { useAuthContext } from '../context/AuthContext';
 export default function LoginPage() {
   const { login, loading, error, clearError } = useAuth();
   const { isAuthenticated } = useAuthContext();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
 
@@ -23,7 +24,15 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await login(form);
+    try {
+      const { redirectUrl } = await login(form, navigate);
+      // Navigate to the redirect URL from server
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      }
+    } catch {
+      // Error is handled in login function
+    }
   };
 
   return (
@@ -105,7 +114,15 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mật khẩu</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-semibold text-gray-700">Mật khẩu</label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input

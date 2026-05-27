@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { Search, ShoppingCart, Zap, User, LogOut, Settings, ChevronDown, Menu, X, Package } from 'lucide-react';
+import { Search, ShoppingCart, Zap, User, LogOut, Settings, ChevronDown, Menu, X, Package, UserCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
 
@@ -158,6 +158,15 @@ export default function Navbar() {
                     >
                       <Package className="w-4 h-4 text-gray-400" />
                       Đơn hàng của tôi
+                    </Link>
+
+                    <Link
+                      to={user.role === 'admin' ? '/admin/profile' : '/user/profile'}
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <UserCircle className="w-4 h-4 text-gray-400" />
+                      Hồ sơ cá nhân
                     </Link>
 
                     <button

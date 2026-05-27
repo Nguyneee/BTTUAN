@@ -50,6 +50,32 @@ const UserSchema = new Schema(
       type: Date,
       default: null,
     },
+    // OTP verification for registration
+    isActivated: {
+      type: Boolean,
+      default: false,
+    },
+    otpCode: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    otpExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    // OTP for password reset
+    resetPasswordOtp: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -83,6 +109,7 @@ UserSchema.methods.toPublicProfile = function () {
     username: this.username,
     role: this.role,
     avatar: this.avatar,
+    isActivated: this.isActivated,
     lastLoginAt: this.lastLoginAt,
     createdAt: this.createdAt,
   };
@@ -90,7 +117,7 @@ UserSchema.methods.toPublicProfile = function () {
 
 // Static finder by email (include password for comparison)
 UserSchema.statics.findByEmail = function (email) {
-  return this.findOne({ email }).select('+password +refreshToken');
+  return this.findOne({ email }).select('+password +refreshToken +otpCode +otpExpires +resetPasswordOtp +resetPasswordExpires');
 };
 
 const User = mongoose.model('User', UserSchema);
