@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShoppingCart, Zap, Star, Package, TrendingUp, Tag, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Zap, Star, Package, TrendingUp, Tag, ChevronRight, Users } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 import ImageSwiper from '../components/detail/ImageSwiper';
 import QuantitySelector from '../components/detail/QuantitySelector';
 import StockBadge from '../components/detail/StockBadge';
 import SimilarProducts from '../components/detail/SimilarProducts';
+import ReviewList from '../components/review/ReviewList';
+import WishlistButton from '../components/WishlistButton';
+import wishlistAPI from '../api/wishlist.api';
 import { useCart } from '../hooks/useCart';
+import { useAuthContext } from '../context/AuthContext';
 
 const formatPrice = (p) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p);
@@ -14,6 +18,7 @@ const formatPrice = (p) =>
 export default function ProductDetailPage() {
   const { id } = useParams();
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuthContext();
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +27,7 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState('description');
   const [added, setAdded] = useState(false);
   const [addError, setAddError] = useState('');
+  const [newReview, setNewReview] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -40,7 +46,11 @@ export default function ProductDetailPage() {
     };
     fetchProduct();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [id]);
+    // Ghi nhận lượt xem (chỉ khi đã đăng nhập)
+    if (isAuthenticated) {
+      wishlistAPI.recordView(id).catch(() => {});
+    }
+  }, [id, isAuthenticated]);
 
   const handleAddToCart = async () => {
     if (stock === 0) return;
@@ -149,16 +159,28 @@ export default function ProductDetailPage() {
 
               {/* Rating + sold */}
               <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={`w-4 h-4 ${i < 4 ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
+                <button
+                  onClick={() => setActiveTab('reviews')}
+                  className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                >
+                  {[1,2,3,4,5].map((i) => (
+                    <Star key={i} className={`w-4 h-4 ${i <= Math.round(product.averageRating || 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
                   ))}
-                  <span className="text-sm text-gray-500 ml-1">4.0</span>
-                </div>
+                  <span className="text-sm text-gray-500 ml-1">
+                    {product.averageRating > 0 ? product.averageRating.toFixed(1) : 'Chưa có'}
+                    {product.reviewCount > 0 && ` (${product.reviewCount})`}
+                  </span>
+                </button>
                 <div className="flex items-center gap-1.5 text-gray-500 text-sm">
                   <TrendingUp className="w-4 h-4 text-primary-500" />
                   <span>Đã bán <strong className="text-gray-900">{sold.toLocaleString()}</strong> sản phẩm</span>
                 </div>
+                {product.buyerCount > 0 && (
+                  <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span><strong className="text-gray-900">{product.buyerCount}</strong> người mua</span>
+                  </div>
+                )}
               </div>
 
               {/* Price */}
@@ -214,6 +236,7 @@ export default function ProductDetailPage() {
                   <Zap className="w-4 h-4" />
                   Mua ngay
                 </Link>
+                <WishlistButton productId={id} size="lg" />
               </div>
 
               {/* Tags */}
@@ -235,33 +258,33 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Tabs: Description / Specs */}
+        {/* Tabs: Description / Specs / Reviews */}
         <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex border-b border-gray-100">
-            {['description', 'specs'].map((tab) => (
+          <div className="flex border-b border-gray-100 overflow-x-auto">
+            {[
+              { key: 'description', label: '📋 Mô tả sản phẩm' },
+              { key: 'specs', label: '⚙️ Thông số kỹ thuật' },
+              { key: 'reviews', label: `⭐ Đánh giá${product.reviewCount > 0 ? ` (${product.reviewCount})` : ''}` },
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-4 text-sm font-semibold transition-colors border-b-2 -mb-px ${
-                  activeTab === tab
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-6 py-4 text-sm font-semibold transition-colors border-b-2 -mb-px whitespace-nowrap ${
+                  activeTab === tab.key
                     ? 'border-primary-600 text-primary-700'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {tab === 'description' ? '📋 Mô tả sản phẩm' : '⚙️ Thông số kỹ thuật'}
+                {tab.label}
               </button>
             ))}
           </div>
           <div className="p-6">
             {activeTab === 'description' ? (
               <div className="prose max-w-none text-gray-700 leading-relaxed">
-                {description ? (
-                  <p>{description}</p>
-                ) : (
-                  <p className="text-gray-400 italic">Chưa có mô tả sản phẩm.</p>
-                )}
+                {description ? <p>{description}</p> : <p className="text-gray-400 italic">Chưa có mô tả sản phẩm.</p>}
               </div>
-            ) : (
+            ) : activeTab === 'specs' ? (
               <div>
                 {specs && specs.size > 0 ? (
                   <table className="w-full text-sm">
@@ -278,6 +301,13 @@ export default function ProductDetailPage() {
                   <p className="text-gray-400 italic">Chưa có thông số kỹ thuật.</p>
                 )}
               </div>
+            ) : (
+              <ReviewList
+                productId={id}
+                averageRating={product.averageRating || 0}
+                reviewCount={product.reviewCount || 0}
+                newReview={newReview}
+              />
             )}
           </div>
         </div>

@@ -3,6 +3,12 @@ const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const { ApiResponse } = require('../shared/utils/apiResponse');
 const { AppError } = require('../shared/errors/AppError');
+const {
+  createAndSendNotification,
+  createAndSendAdminNotification,
+} = require('./notificationController');
+const { NOTIFICATION_TYPES } = require('../models/Notification');
+const { validateCoupon, calcDiscount } = require('./couponController');
 
 // Shipping fee constants
 const SHIPPING_FEE = 30000; // 30,000 VND
@@ -18,7 +24,7 @@ const CANCEL_WINDOW_MS = 30 * 60 * 1000;
 const createOrder = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { shippingAddress, note } = req.body;
+    const { shippingAddress, note, couponCode } = req.body;
 
     // Validate shipping address
     if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.address || !shippingAddress.city) {
@@ -59,7 +65,15 @@ const createOrder = async (req, res, next) => {
       0
     );
     const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-    const totalAmount = subtotal + shippingFee;
+
+    // Process Coupon if provided
+    let coupon = null;
+    let discountAmount = 0;
+    if (couponCode) {
+      coupon = await validateCoupon(couponCode, userId, subtotal);
+      discountAmount = calcDiscount(coupon, subtotal);
+    }
+    const totalAmount = Math.max(0, subtotal + shippingFee - discountAmount);
 
     // Build order items (snapshot)
     const orderItems = validItems.map((item) => ({
@@ -88,9 +102,19 @@ const createOrder = async (req, res, next) => {
       status: ORDER_STATUS.PENDING,
       note: note || '',
       estimatedDelivery: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+      coupon: coupon ? coupon._id : null,
+      couponCode: coupon ? coupon.code : null,
+      discountAmount,
     });
 
     await order.save();
+
+    // Mark coupon as used
+    if (coupon) {
+      coupon.usageCount += 1;
+      coupon.usedBy.push(userId);
+      await coupon.save();
+    }
 
     // Clear cart after successful order
     await Cart.findOneAndUpdate({ user: userId }, { items: [] });
@@ -103,6 +127,15 @@ const createOrder = async (req, res, next) => {
     }
 
     await order.populate('user', 'username email');
+
+    // ── Thông báo admin: có đơn hàng mới ──────────────────────────────────
+    createAndSendAdminNotification({
+      type: NOTIFICATION_TYPES.ORDER_NEW,
+      title: '🛒 Đơn hàng mới!',
+      message: `Có đơn hàng mới #${order.orderCode} từ khách hàng ${order.user.username}. Tổng tiền: ${order.totalAmount.toLocaleString('vi-VN')} VND`,
+      data: { orderId: order._id, orderCode: order.orderCode },
+      sendEmail: true,
+    }).catch(console.error);
 
     return res.status(201).json(
       ApiResponse.success(order, 'Đặt hàng thành công! Cảm ơn bạn đã đặt hàng tại TechStore.')
@@ -396,6 +429,25 @@ const updateOrderStatus = async (req, res, next) => {
 
     await order.save();
     await order.populate('user', 'username email');
+
+    // ── Thông báo user: trạng thái đơn thay đổi ───────────────────────────
+    const statusLabels = {
+      CONFIRMED: 'đã được xác nhận ✅',
+      PROCESSING: 'đang được chuẩn bị 📦',
+      SHIPPING: 'đang trên đường giao 🚚',
+      DELIVERED: 'đã giao thành công 🎉',
+      CANCELLED: 'đã bị hủy ❌',
+      CANCEL_REQUESTED: 'đang chờ xử lý yêu cầu hủy ⏳',
+    };
+    const statusLabel = statusLabels[newStatus] || newStatus;
+    createAndSendNotification({
+      userId: order.user._id,
+      type: NOTIFICATION_TYPES.ORDER_STATUS_CHANGED,
+      title: `Cập nhật đơn hàng #${order.orderCode}`,
+      message: `Đơn hàng #${order.orderCode} của bạn ${statusLabel}.${note ? ' Ghi chú: ' + note : ''}`,
+      data: { orderId: order._id, orderCode: order.orderCode, newStatus },
+      sendEmail: true,
+    }).catch(console.error);
 
     return res.status(200).json(
       ApiResponse.success(order, `Trạng thái đơn hàng đã được cập nhật`)

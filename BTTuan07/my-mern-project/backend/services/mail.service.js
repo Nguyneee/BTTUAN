@@ -97,7 +97,66 @@ async function sendOtpEmail(email, otp, type = 'register', username = '') {
   }
 }
 
+/**
+ * Send activity notification email
+ * @param {string} email - Recipient email
+ * @param {string} subject - Email subject
+ * @param {string} message - Notification message body
+ * @param {string} username - Optional username
+ */
+async function sendNotificationEmail(email, subject, message, username = '') {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #2563eb, #1d4ed8); padding: 30px; text-align: center; color: white; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; }
+        .message-box { background: #f3f4f6; border-left: 4px solid #2563eb; border-radius: 4px; padding: 16px; margin: 16px 0; }
+        .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔌 TechStore</h1>
+        </div>
+        <div class="content">
+          <p>Xin chào${username ? ` <strong>${username}</strong>` : ''},</p>
+          <div class="message-box">
+            <p style="margin:0;color:#374151;">${message}</p>
+          </div>
+          <p style="color:#6b7280;font-size:13px;">Đây là thông báo tự động từ hệ thống TechStore.</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} TechStore. Tất cả các quyền được bảo lưu.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: `[TechStore] ${subject}`,
+      text: `${subject}\n\n${message}`,
+      html: htmlContent,
+    });
+    return true;
+  } catch (error) {
+    console.error('Notification email send error:', error);
+    return false;
+  }
+}
+
 module.exports = {
   sendOtpEmail,
   generateOtp,
+  sendNotificationEmail,
 };

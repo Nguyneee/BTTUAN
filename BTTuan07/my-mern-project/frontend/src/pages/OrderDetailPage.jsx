@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  ChevronLeft, MapPin, Phone, User, Package, Calendar,
-  AlertTriangle, ShoppingBag, Clock, X, CheckCircle,
+  ChevronLeft, MapPin, Phone, Package, Calendar,
+  AlertTriangle, Clock, X, Star,
 } from 'lucide-react';
 import { orderAPI } from '../api/order.api';
 import StatusBadge from '../components/order/StatusBadge';
 import OrderStatusStepper from '../components/order/OrderStatusStepper';
 import { ORDER_STATUS } from '../components/order/orderStatusConfig';
+import ReviewForm from '../components/review/ReviewForm';
+import reviewAPI from '../api/review.api';
 
 const formatPrice = (p) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p);
@@ -32,6 +34,10 @@ export default function OrderDetailPage() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  // Review state
+  const [reviewingItem, setReviewingItem] = useState(null); // { product, name }
+  const [reviewedProducts, setReviewedProducts] = useState(new Set());
+  const [reviewSuccess, setReviewSuccess] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -84,6 +90,24 @@ export default function OrderDetailPage() {
       (order.status === ORDER_STATUS.PENDING &&
         Date.now() - new Date(order.createdAt).getTime() <= CANCEL_WINDOW_MS));
 
+  // Check reviewed products on load
+  useEffect(() => {
+    if (!order || order.status !== ORDER_STATUS.DELIVERED) return;
+    const checkReviewed = async () => {
+      const reviewed = new Set();
+      await Promise.all(
+        order.items.map(async (item) => {
+          try {
+            const res = await reviewAPI.canReview(order._id, item.product);
+            if (!res.data?.canReview) reviewed.add(item.product);
+          } catch {}
+        })
+      );
+      setReviewedProducts(reviewed);
+    };
+    checkReviewed();
+  }, [order]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -113,7 +137,7 @@ export default function OrderDetailPage() {
     );
   }
 
-  const { orderCode, status, items, shippingAddress, totalAmount, subtotal, shippingFee, createdAt, estimatedDelivery, statusHistory, cancelReason: existingCancelReason } = order;
+  const { orderCode, status, items, shippingAddress, totalAmount, subtotal, shippingFee, createdAt, estimatedDelivery, statusHistory, cancelReason: existingCancelReason, couponCode, discountAmount } = order;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -194,6 +218,21 @@ export default function OrderDetailPage() {
                           <span className="text-xs text-gray-400 line-through">{formatPrice(item.originalPrice)}</span>
                         )}
                       </div>
+                      {/* Nút đánh giá cho đơn DELIVERED */}
+                      {status === ORDER_STATUS.DELIVERED && (
+                        reviewedProducts.has(item.product) ? (
+                          <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            <Star className="w-3 h-3 fill-emerald-500 text-emerald-500" /> Đã đánh giá
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setReviewingItem({ product: item.product, name: item.name })}
+                            className="inline-flex items-center gap-1 mt-1.5 text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full hover:bg-primary-100 transition-colors"
+                          >
+                            <Star className="w-3 h-3" /> Viết đánh giá
+                          </button>
+                        )
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-bold text-primary-700 text-sm">{formatPrice(item.price * item.quantity)}</p>
@@ -252,6 +291,12 @@ export default function OrderDetailPage() {
                   <span>Tạm tính</span>
                   <span className="font-semibold text-gray-900">{formatPrice(subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-red-600 font-medium">
+                    <span>Giảm giá {couponCode ? `(${couponCode})` : ''}</span>
+                    <span>-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Phí vận chuyển</span>
                   <span className={`font-semibold ${shippingFee === 0 ? 'text-emerald-600' : 'text-gray-900'}`}>
@@ -388,6 +433,34 @@ export default function OrderDetailPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Review Form Modal */}
+      {reviewingItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md">
+            <ReviewForm
+              productId={reviewingItem.product}
+              orderId={order._id}
+              productName={reviewingItem.name}
+              onSuccess={(data) => {
+                setReviewedProducts((prev) => new Set([...prev, reviewingItem.product]));
+                setReviewingItem(null);
+                setReviewSuccess(`Đánh giá thành công! Bạn nhận được ${data?.rewardPoints || 50} điểm tích lũy 🎉`);
+                setTimeout(() => setReviewSuccess(''), 5000);
+              }}
+              onCancel={() => setReviewingItem(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {reviewSuccess && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-medium animate-fade-in">
+          <Star className="w-4 h-4 fill-white" />
+          {reviewSuccess}
         </div>
       )}
     </div>

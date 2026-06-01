@@ -76,6 +76,25 @@ const UserSchema = new Schema(
       default: null,
       select: false,
     },
+    // Điểm tích lũy (tặng khi đánh giá sản phẩm)
+    loyaltyPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // Lịch sử điểm
+    pointsHistory: {
+      type: [
+        {
+          amount: Number,
+          type: { type: String, enum: ['EARN', 'SPEND'] },
+          reason: String,
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+      select: false,
+    },
   },
   {
     timestamps: true,

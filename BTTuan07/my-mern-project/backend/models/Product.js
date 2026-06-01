@@ -86,6 +86,31 @@ const productSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    // Đánh giá trung bình (1-5)
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    // Tổng lượt đánh giá
+    reviewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // Số khách đã mua
+    buyerCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // Số bình luận
+    commentCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,

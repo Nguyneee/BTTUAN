@@ -3,6 +3,8 @@ import { Provider } from "react-redux";
 import store from "./redux/store";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { SocketProvider } from "./context/SocketContext";
+import { WishlistProvider } from "./context/WishlistContext";
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -20,6 +22,12 @@ import OrderHistoryPage from "./pages/OrderHistoryPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import LoyaltyPage from "./pages/LoyaltyPage";
+import WishlistPage from "./pages/WishlistPage";
+import ViewHistoryPage from "./pages/ViewHistoryPage";
 
 // Auth Pages
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -147,6 +155,52 @@ function AppRoutes() {
         }
       />
 
+      {/* ── Notifications ───────────────────────────────────────── */}
+      <Route
+        path="/notifications"
+        element={
+          <PrivateRoute>
+            <Navbar />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <NotificationsPage />
+            </main>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/loyalty"
+        element={
+          <PrivateRoute>
+            <Navbar />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <LoyaltyPage />
+            </main>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/wishlist"
+        element={
+          <PrivateRoute>
+            <Navbar />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <WishlistPage />
+            </main>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <PrivateRoute>
+            <Navbar />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <ViewHistoryPage />
+            </main>
+          </PrivateRoute>
+        }
+      />
+
       {/* ── Admin routes ──────────────────────────────────────── */}
       <Route
         path="/admin/profile"
@@ -164,6 +218,17 @@ function AppRoutes() {
             <Navbar />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
               <ProductList />
+            </main>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <PrivateRoute requiredRole="admin">
+            <Navbar />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <AdminDashboardPage />
             </main>
           </PrivateRoute>
         }
@@ -201,6 +266,17 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/admin/coupons"
+        element={
+          <PrivateRoute requiredRole="admin">
+            <Navbar />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+              <AdminCouponsPage />
+            </main>
+          </PrivateRoute>
+        }
+      />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -213,9 +289,13 @@ function App() {
     <Provider store={store}>
       <Router>
         <AuthProvider>
-          <CartProvider>
-            <AppRoutes />
-          </CartProvider>
+          <SocketProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <AppRoutes />
+              </CartProvider>
+            </WishlistProvider>
+          </SocketProvider>
         </AuthProvider>
       </Router>
     </Provider>

@@ -1,8 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const http = require("http");
 const connectDB = require("./db");
 const { errorHandler } = require("./middleware/error.middleware");
+const { initSocket } = require("./services/socket.service");
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +25,11 @@ app.use("/api/categories", require("./routes/categoryRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
+app.use("/api/notifications", require("./routes/notificationRoutes"));
+app.use("/api/stats", require("./routes/statsRoutes"));
+app.use("/api/reviews", require("./routes/reviewRoutes"));
+app.use("/api/wishlist", require("./routes/wishlistRoutes"));
+app.use("/api/coupons", require("./routes/couponRoutes"));
 
 // Health check
 app.get("/", (req, res) => {
@@ -37,16 +44,23 @@ app.use((req, res) => {
 // ---------- Global Error Handler (must be last) ----------
 app.use(errorHandler);
 
+// ---------- Create HTTP server (required for socket.io) ----------
+const httpServer = http.createServer(app);
+
 // ---------- Start Server ----------
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
+  // Init Socket.io
+  initSocket(httpServer);
+
   // Start auto-confirm job for pending orders
   const { startAutoConfirmJob } = require('./jobs/autoConfirmOrders');
   startAutoConfirmJob();
 
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`🚀 TechStore API running on http://localhost:${PORT}`);
+    console.log(`🔌 Socket.io ready on ws://localhost:${PORT}`);
   });
 });
 

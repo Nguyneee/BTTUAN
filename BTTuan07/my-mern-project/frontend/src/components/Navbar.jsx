@@ -1,8 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { Search, ShoppingCart, Zap, User, LogOut, Settings, ChevronDown, Menu, X, Package, UserCircle } from 'lucide-react';
+import { Search, ShoppingCart, Zap, User, LogOut, Settings, ChevronDown, Menu, X, Package, UserCircle, BarChart2, Ticket } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -97,6 +98,9 @@ export default function Navbar() {
               )}
             </button>
 
+            {/* Notification Bell - chỉ hiện khi đã đăng nhập */}
+            {isAuthenticated && <NotificationBell />}
+
             {/* User menu */}
             {isAuthenticated && user ? (
               <div className="relative" ref={dropdownRef}>
@@ -131,6 +135,17 @@ export default function Navbar() {
 
                     {user.role === 'admin' && (
                       <Link
+                        to="/admin/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <BarChart2 className="w-4 h-4 text-gray-400" />
+                        Dashboard thống kê
+                      </Link>
+                    )}
+
+                    {user.role === 'admin' && (
+                      <Link
                         to="/admin"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -151,6 +166,17 @@ export default function Navbar() {
                       </Link>
                     )}
 
+                    {user.role === 'admin' && (
+                      <Link
+                        to="/admin/coupons"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Ticket className="w-4 h-4 text-gray-400" />
+                        Quản lý mã giảm giá
+                      </Link>
+                    )}
+
                     <Link
                       to="/orders"
                       onClick={() => setDropdownOpen(false)}
@@ -158,6 +184,33 @@ export default function Navbar() {
                     >
                       <Package className="w-4 h-4 text-gray-400" />
                       Đơn hàng của tôi
+                    </Link>
+
+                    <Link
+                      to="/loyalty"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-base">🎁</span>
+                      Điểm tích lũy
+                    </Link>
+
+                    <Link
+                      to="/wishlist"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-base">❤️</span>
+                      Sản phẩm yêu thích
+                    </Link>
+
+                    <Link
+                      to="/history"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-base">🕘</span>
+                      Đã xem gần đây
                     </Link>
 
                     <Link
